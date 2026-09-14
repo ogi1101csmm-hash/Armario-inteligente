@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#111318" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Mi Armario" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>Mi Armario Inteligente</title>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">ARMARIO INTELIGENTE</p>
+        <h1 id="pageTitle">Inicio</h1>
+      </div>
+      <button class="icon-btn" id="quickAddBtn" aria-label="Añadir prenda">＋</button>
+    </header>
+
+    <main id="appMain">
+      <section class="view active" data-view="home">
+        <div class="hero-card">
+          <div>
+            <p class="muted">Tu look de hoy</p>
+            <h2>Viste mejor con lo que ya tienes.</h2>
+            <p class="muted small">Genera combinaciones con tus prendas reales y evita repetir demasiado.</p>
+          </div>
+          <button class="primary" data-nav="generator">Generar outfit</button>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card"><strong id="statGarments">0</strong><span>prendas</span></article>
+          <article class="stat-card"><strong id="statFavorites">0</strong><span>favoritos</span></article>
+          <article class="stat-card"><strong id="statLooks">0</strong><span>looks usados</span></article>
+        </div>
+
+        <section class="section-block">
+          <div class="section-title-row"><h3>Acciones rápidas</h3></div>
+          <div class="quick-grid">
+            <button class="quick-card" data-nav="wardrobe"><span>👕</span><b>Mi armario</b><small>Ver tus prendas</small></button>
+            <button class="quick-card" data-nav="generator"><span>✨</span><b>Crear look</b><small>Según ocasión y clima</small></button>
+            <button class="quick-card" data-action="randomLook"><span>🎲</span><b>Sorpréndeme</b><small>Combinación automática</small></button>
+            <button class="quick-card" data-nav="history"><span>🗓️</span><b>Historial</b><small>Qué te has puesto</small></button>
+          </div>
+        </section>
+
+        <section class="section-block">
+          <div class="section-title-row"><h3>Último outfit</h3></div>
+          <div id="lastOutfit" class="empty-card">Todavía no has guardado ningún outfit.</div>
+        </section>
+      </section>
+
+      <section class="view" data-view="wardrobe">
+        <div class="toolbar-row">
+          <div class="search-wrap"><input id="wardrobeSearch" type="search" placeholder="Buscar prenda…" /></div>
+          <button class="secondary" id="openAddGarment">+ Prenda</button>
+        </div>
+        <div id="categoryChips" class="chips"></div>
+        <div id="wardrobeGrid" class="garment-grid"></div>
+      </section>
+
+      <section class="view" data-view="generator">
+        <div class="generator-card">
+          <label>¿Para qué te vistes?</label>
+          <div id="occasionOptions" class="segmented wrap"></div>
+
+          <label>Temperatura</label>
+          <div id="temperatureOptions" class="segmented"></div>
+
+          <label>Estilo</label>
+          <div id="styleOptions" class="segmented wrap"></div>
+
+          <label>Prenda obligatoria <span class="muted small">(opcional)</span></label>
+          <select id="requiredGarment"><option value="">Ninguna</option></select>
+
+          <label class="check-row"><input type="checkbox" id="onlyClean" checked /> <span>Usar solo prendas limpias</span></label>
+          <label class="check-row"><input type="checkbox" id="avoidRecent" checked /> <span>Evitar prendas usadas recientemente</span></label>
+
+          <button class="primary wide" id="generateBtn">✨ Generar outfit</button>
+        </div>
+
+        <section id="outfitResult" class="section-block hidden">
+          <div class="section-title-row">
+            <div><p class="eyebrow">RECOMENDACIÓN</p><h3 id="outfitTitle">Outfit recomendado</h3></div>
+            <span id="outfitScore" class="score-pill">0%</span>
+          </div>
+          <div id="outfitPhotos" class="outfit-grid"></div>
+          <div id="outfitReason" class="reason-box"></div>
+          <div class="button-row">
+            <button class="secondary" id="regenerateBtn">Otro outfit</button>
+            <button class="secondary" id="favoriteOutfitBtn">♡ Favorito</button>
+            <button class="primary" id="wearOutfitBtn">Usar hoy</button>
+          </div>
+        </section>
+      </section>
+
+      <section class="view" data-view="favorites">
+        <div id="favoriteList" class="look-list"></div>
+      </section>
+
+      <section class="view" data-view="history">
+        <div id="historyList" class="look-list"></div>
+      </section>
+
+      <section class="view" data-view="settings">
+        <div class="settings-card">
+          <h3>Copia de seguridad</h3>
+          <p class="muted small">Exporta tus datos y fotos a un archivo JSON. Úsalo para restaurar el armario en otro dispositivo.</p>
+          <div class="button-row">
+            <button class="secondary" id="exportBtn">Exportar backup</button>
+            <label class="secondary file-label">Importar backup<input type="file" id="importInput" accept="application/json" /></label>
+          </div>
+        </div>
+        <div class="settings-card danger-zone">
+          <h3>Datos locales</h3>
+          <p class="muted small">Eliminará prendas, fotos, favoritos e historial de este dispositivo.</p>
+          <button class="danger" id="resetBtn">Borrar todos los datos</button>
+        </div>
+        <div class="settings-card">
+          <h3>Instalar en iPhone</h3>
+          <p class="muted small">En Safari: Compartir → Añadir a pantalla de inicio. La app funcionará como una PWA.</p>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-nav="home"><span>⌂</span><small>Inicio</small></button>
+      <button class="nav-item" data-nav="wardrobe"><span>▦</span><small>Armario</small></button>
+      <button class="nav-main" data-nav="generator"><span>✦</span></button>
+      <button class="nav-item" data-nav="favorites"><span>♡</span><small>Favoritos</small></button>
+      <button class="nav-item" data-nav="history"><span>◷</span><small>Historial</small></button>
+    </nav>
+  </div>
+
+  <dialog id="garmentDialog" class="modal">
+    <form method="dialog" id="garmentForm">
+      <div class="modal-head"><h2 id="garmentModalTitle">Añadir prenda</h2><button type="button" class="icon-btn small-btn" id="closeGarmentDialog">×</button></div>
+      <input type="hidden" id="garmentId" />
+      <div class="photo-upload" id="photoDrop">
+        <img id="photoPreview" alt="Vista previa" class="hidden" />
+        <div id="photoPlaceholder"><span>📷</span><b>Añadir foto</b><small>Hazla con buena luz y fondo sencillo</small></div>
+        <input type="file" id="garmentPhoto" accept="image/*" capture="environment" />
+      </div>
+      <label>Nombre<input id="garmentName" required placeholder="Ej. Camisa Oxford blanca" /></label>
+      <div class="form-grid">
+        <label>Tipo<select id="garmentCategory" required></select></label>
+        <label>Color<select id="garmentColor" required></select></label>
+      </div>
+      <div class="form-grid">
+        <label>Estilo<select id="garmentStyle" required></select></label>
+        <label>Temporada<select id="garmentSeason" required></select></label>
+      </div>
+      <label>Ocasiones</label>
+      <div id="garmentOccasions" class="check-chips"></div>
+      <label class="check-row"><input id="garmentClean" type="checkbox" checked /> <span>Está limpia / disponible</span></label>
+      <button type="submit" class="primary wide">Guardar prenda</button>
+    </form>
+  </dialog>
+
+  <dialog id="garmentDetailDialog" class="modal detail-modal">
+    <div id="garmentDetail"></div>
+  </dialog>
+
+  <div id="toast" class="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>
