@@ -49,3 +49,10 @@ PWA estática lista para GitHub Pages. Guarda prendas, fotos, favoritos e histor
 
 - En “¿Para qué me visto?” solo aparecen: Diario, Trabajo, Evento y Entrenar.
 - En “Estilo” solo aparecen: Casual, Arreglado y Deporte.
+
+- “Otro outfit” nunca devuelve exactamente el mismo conjunto mientras existan alternativas.
+- Prioriza cambiar la parte de arriba antes que el pantalón o las zapatillas, manteniendo las prendas únicas disponibles.
+- Recorre distintas combinaciones compatibles antes de repetir.
+
+- El generador descarta cualquier outfit con prendas que no peguen entre sí.
+- Si una camiseta no combina con el pantalón o las zapatillas disponibles, ya no aparece como alternativa en “Otro outfit”.

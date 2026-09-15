@@ -1,7 +1,7 @@
 const DB_NAME='smartWardrobeDB', DB_VERSION=1;
 const STORE_GARMENTS='garments', STORE_LOOKS='looks';
 let db;
-let state={garments:[],looks:[],currentOutfit:null,filter:'Todos'};
+let state={garments:[],looks:[],currentOutfit:null,filter:'Todos',generatedOutfitKeys:[]};
 
 const CATEGORIES=['Camiseta','Polo','Camisa','Jersey','Sudadera','Chaqueta','Cazadora','Abrigo','Pantalón','Vaquero','Chino','Cargo','Short','Zapatillas','Accesorio'];
 const COLORS=['Blanco','Negro','Gris','Beige','Crema','Camel','Marrón','Azul marino','Azul','Azul claro','Verde oliva','Verde','Burdeos','Rojo','Rosa','Amarillo','Naranja','Morado','Denim'];
@@ -155,21 +155,104 @@ function seasonMatches(g,temp){if(g.season==='Todo el año')return true;if(temp=
 function categorySlot(cat){if(['Camiseta','Polo','Camisa','Jersey','Sudadera'].includes(cat))return'top';if(['Pantalón','Vaquero','Chino','Cargo','Short'].includes(cat))return'bottom';if(cat==='Zapatillas')return'shoes';if(['Chaqueta','Cazadora','Abrigo'].includes(cat))return'outer';if(cat==='Accesorio')return'accessory';return'other';}
 function colorPairScore(a,b){const fa=COLOR_FAMILY[a]||'neutral',fb=COLOR_FAMILY[b]||'neutral';if(a===b)return 7;if(fa==='neutral'||fb==='neutral')return 10;if(FRIENDLY[fa]?.includes(fb))return 8;return 2;}
 function outfitColorScore(items){if(items.length<2)return 10;let total=0,n=0;for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++){total+=colorPairScore(items[i].color,items[j].color);n++;}return total/n;}
+function incompatiblePairCount(items){
+ let bad=0;
+ for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++){
+   if(colorPairScore(items[i].color,items[j].color)<=2) bad++;
+ }
+ return bad;
+}
+function topAndShoesClash(items){
+ const top=items.find(g=>categorySlot(g.category)==='top');
+ const shoes=items.find(g=>categorySlot(g.category)==='shoes');
+ if(!top||!shoes) return false;
+ const tc=top.palette?.primary?{...top.palette.primary,name:top.color}:colorInfoFromName(top.color);
+ const sc=shoes.palette?.primary?{...shoes.palette.primary,name:shoes.color}:colorInfoFromName(shoes.color);
+ return !isNeutralColor(tc) && !isNeutralColor(sc) && tc.s>45 && sc.s>45 && hueDistance(tc.h,sc.h)>70;
+}
+function isAcceptableOutfit(items,colorBase,palette){
+ if(incompatiblePairCount(items)>0) return false;
+ if(colorBase<7) return false;
+ if(palette<0) return false;
+ if(topAndShoesClash(items)) return false;
+ return true;
+}
 function garmentScore(g,{occasion,temp,style,onlyClean,avoidRecent}){let s=0;if(onlyClean&&!g.clean)return -999;if(!seasonMatches(g,temp))s-=15;else s+=8;if((g.occasions||[]).includes(occasion))s+=16;if(g.style===style)s+=12;else if((style==='Arreglado'&&g.style==='Casual')||(style==='Casual'&&g.style==='Arreglado'))s+=3;if(avoidRecent&&g.lastWorn){const days=(Date.now()-new Date(g.lastWorn).getTime())/86400000;if(days<2)s-=18;else if(days<5)s-=8;}s-=Math.min(g.useCount||0,20)*.15;return s;}
 function weightedPick(arr,ctx,exclude=[]){const candidates=arr.filter(x=>!exclude.includes(x.id)).map(g=>({g,s:garmentScore(g,ctx)+Math.random()*8})).filter(x=>x.s>-900).sort((a,b)=>b.s-a.s);if(!candidates.length)return null;const top=candidates.slice(0,Math.min(5,candidates.length));return top[Math.floor(Math.random()*top.length)].g;}
-function generateOutfit(forceRandom=false){
+function outfitKey(items){
+ return items.slice().sort((a,b)=>categorySlot(a.category).localeCompare(categorySlot(b.category))).map(g=>g.id).join('|');
+}
+function outfitChangeCost(items,currentItems){
+ if(!currentItems?.length)return 0;
+ const currentBySlot={};currentItems.forEach(g=>currentBySlot[categorySlot(g.category)]=g.id);
+ const weights={top:1,outer:2,accessory:2,bottom:4,shoes:5,other:3};
+ let cost=0;
+ const newBySlot={};items.forEach(g=>newBySlot[categorySlot(g.category)]=g.id);
+ const slots=new Set([...Object.keys(currentBySlot),...Object.keys(newBySlot)]);
+ slots.forEach(slot=>{if(currentBySlot[slot]!==newBySlot[slot])cost+=weights[slot]||3;});
+ return cost;
+}
+function buildOutfitCandidates(ctx,required,temp){
+ const available=state.garments.filter(g=>garmentScore(g,ctx)>-900);
+ const pools={};available.forEach(g=>(pools[categorySlot(g.category)]??=[]).push(g));
+ const tops=pools.top||[], bottoms=pools.bottom||[], shoes=pools.shoes||[], outers=pools.outer||[];
+ if(!tops.length||!bottoms.length||!shoes.length)return [];
+ const outerChoices=(temp==='Frío') ? outers : (temp==='Templado' ? [null,...outers] : [null]);
+ const candidates=[];
+ for(const top of tops) for(const bottom of bottoms) for(const shoe of shoes) for(const outer of outerChoices){
+   const items=[top,bottom,shoe]; if(outer)items.push(outer);
+   if(required && !items.some(g=>g.id===required.id))continue;
+   const colorBase=outfitColorScore(items);
+   const palette=paletteCompatibility(items);
+   if(!isAcceptableOutfit(items,colorBase,palette)) continue;
+   const fit=items.reduce((sum,g)=>sum+garmentScore(g,ctx),0)/items.length;
+   const raw=colorBase*3.2 + palette*1.15 + fit*.55;
+   const displayScore=Math.max(72,Math.min(99,Math.round(70 + colorBase*1.45 + palette*.44 + Math.max(0,fit)*.18)));
+   candidates.push({items,raw,score:displayScore,key:outfitKey(items)});
+ }
+ return candidates.sort((a,b)=>b.raw-a.raw);
+}
+function generateOutfit(regenerate=false){
  if(state.garments.length<3){toast('Añade al menos 3 prendas para generar un outfit');return;}
  const occasion=$('#occasionOptions .segment.active')?.dataset.value||'Diario',temp=$('#temperatureOptions .segment.active')?.dataset.value||'Templado',style=$('#styleOptions .segment.active')?.dataset.value||'Casual',onlyClean=$('#onlyClean').checked,avoidRecent=$('#avoidRecent').checked;
- const ctx={occasion,temp,style,onlyClean,avoidRecent}; const requiredId=forceRandom?'':$('#requiredGarment').value; const required=state.garments.find(g=>g.id===requiredId); if(required&&onlyClean&&!required.clean){toast('La prenda obligatoria está marcada como usada');return;}
- const pools={};state.garments.forEach(g=>(pools[categorySlot(g.category)]??=[]).push(g)); let items=[];if(required)items.push(required);
- const slots=['top','bottom','shoes']; if(temp==='Frío'||(temp==='Templado'&&Math.random()>.45))slots.push('outer');
- for(const slot of slots){if(items.some(x=>categorySlot(x.category)===slot))continue;let pick=weightedPick(pools[slot]||[],ctx,items.map(x=>x.id));if(pick)items.push(pick);}
- if((pools.accessory||[]).length&&Math.random()>.65&&!items.some(x=>categorySlot(x.category)==='accessory')){const p=weightedPick(pools.accessory,ctx,items.map(x=>x.id));if(p)items.push(p);}
- if(items.length<3){toast('Faltan categorías básicas. Añade parte de arriba, pantalón y zapatillas.');return;}
- // improve colors by retries
- let best=items,bestColor=outfitColorScore(items)+paletteCompatibility(items)/10;for(let r=0;r<40;r++){let trial=required?[required]:[];for(const slot of slots){if(trial.some(x=>categorySlot(x.category)===slot))continue;const p=weightedPick(pools[slot]||[],ctx,trial.map(x=>x.id));if(p)trial.push(p);}if(trial.length>=3){const cs=outfitColorScore(trial)+paletteCompatibility(trial)/10;if(cs>bestColor){best=trial;bestColor=cs;}}}
- const fit=best.map(g=>garmentScore(g,ctx)).reduce((a,b)=>a+b,0)/best.length;const score=Math.max(68,Math.min(98,Math.round(68+bestColor*2+Math.max(0,fit)/8)));
- state.currentOutfit={id:uid(),garmentIds:best.map(x=>x.id),occasion,temp,style,score,createdAt:new Date().toISOString(),favorite:false,wornAt:null};renderCurrentOutfit();
+ const ctx={occasion,temp,style,onlyClean,avoidRecent};
+ const requiredId=$('#requiredGarment').value;
+ const required=state.garments.find(g=>g.id===requiredId);
+ if(required&&onlyClean&&!required.clean){toast('La prenda obligatoria está marcada para lavar');return;}
+ const candidates=buildOutfitCandidates(ctx,required,temp);
+ if(!candidates.length){toast('No encuentro una combinación que pegue bien con la ropa disponible.');return;}
+
+ let choice;
+ if(!regenerate || !state.currentOutfit){
+   state.generatedOutfitKeys=[];
+   choice=candidates[0];
+ }else{
+   const currentItems=state.currentOutfit.garmentIds.map(id=>state.garments.find(g=>g.id===id)).filter(Boolean);
+   const currentKey=outfitKey(currentItems);
+   if(!state.generatedOutfitKeys.includes(currentKey))state.generatedOutfitKeys.push(currentKey);
+
+   const bestRaw=candidates[0].raw;
+   // No sacrificar demasiado la combinación solo por cambiar de prendas.
+   let alternatives=candidates.filter(c=>c.key!==currentKey && !state.generatedOutfitKeys.includes(c.key) && c.raw>=bestRaw-22);
+   if(!alternatives.length){
+     // Si ya hemos recorrido las buenas, empezar una nueva vuelta pero sin repetir el outfit actual.
+     state.generatedOutfitKeys=[currentKey];
+     alternatives=candidates.filter(c=>c.key!==currentKey && c.raw>=bestRaw-22);
+   }
+   if(!alternatives.length){
+     alternatives=candidates.filter(c=>c.key!==currentKey);
+   }
+   if(!alternatives.length){toast('No hay otro outfit distinto disponible con la ropa actual.');return;}
+
+   alternatives.forEach(c=>c.changeCost=outfitChangeCost(c.items,currentItems));
+   alternatives.sort((a,b)=>a.changeCost-b.changeCost || b.raw-a.raw);
+   choice=alternatives[0];
+ }
+
+ if(!choice){toast('No encuentro otro outfit compatible.');return;}
+ state.generatedOutfitKeys.push(choice.key);
+ state.currentOutfit={id:uid(),garmentIds:choice.items.map(x=>x.id),occasion,temp,style,score:choice.score,createdAt:new Date().toISOString(),favorite:false,wornAt:null};
+ renderCurrentOutfit();
 }
 function renderCurrentOutfit(){const o=state.currentOutfit;if(!o)return;const gs=o.garmentIds.map(id=>state.garments.find(g=>g.id===id)).filter(Boolean);$('#outfitTitle').textContent=`${o.occasion} · ${o.style}`;$('#outfitScore').textContent=`${o.score}%`;$('#outfitPhotos').innerHTML=gs.map(g=>`<article class="outfit-item"><img src="${g.photo}" alt="${escapeHTML(g.name)}"><div><b>${escapeHTML(g.name)}</b><small>${g.color} · ${g.category}</small></div></article>`).join('');const colors=[...new Set(gs.map(g=>g.color))].join(' · ');$('#outfitReason').innerHTML=`<b>Por qué funciona</b><br>Paleta: ${escapeHTML(colors)}. La combinación está equilibrada para <b>${o.occasion.toLowerCase()}</b>, con un nivel de formalidad próximo a <b>${o.style.toLowerCase()}</b> y prendas adecuadas para tiempo <b>${o.temp.toLowerCase()}</b>.`;$('#favoriteOutfitBtn').textContent=o.favorite?'♥ Favorito':'♡ Favorito';$('#outfitResult').classList.remove('hidden');$('#outfitResult').scrollIntoView({behavior:'smooth',block:'start'});}
 async function saveLook({wear=false,favorite=false}={}){if(!state.currentOutfit)return;const o={...state.currentOutfit};if(wear)o.wornAt=new Date().toISOString();if(favorite)o.favorite=!o.favorite;await put(STORE_LOOKS,o);if(wear){for(const id of o.garmentIds){const g=state.garments.find(x=>x.id===id);if(!g)continue;g.lastWorn=o.wornAt;g.useCount=(g.useCount||0)+1;
@@ -190,13 +273,13 @@ async function importBackup(file){try{const data=JSON.parse(await file.text());i
 async function reload(){state.garments=await getAll(STORE_GARMENTS);state.looks=await getAll(STORE_LOOKS);renderHome();}
 
 function bindEvents(){
- document.addEventListener('click',e=>{const n=e.target.closest('[data-nav]');if(n)navigate(n.dataset.nav);const a=e.target.closest('[data-action="randomLook"]');if(a){navigate('generator');generateOutfit(true);}});
+ document.addEventListener('click',e=>{const n=e.target.closest('[data-nav]');if(n)navigate(n.dataset.nav);const a=e.target.closest('[data-action="randomLook"]');if(a){navigate('generator');generateOutfit(false);}});
  $('#quickAddBtn').onclick=()=>openGarmentForm();$('#openAddGarment').onclick=()=>openGarmentForm();$('#closeGarmentDialog').onclick=()=>$('#garmentDialog').close();$('#garmentForm').addEventListener('submit',saveGarment);
  $('#garmentPhotoCamera')?.addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return; if($('#garmentPhotoLibrary')) $('#garmentPhotoLibrary').value=''; await handleGarmentPhotoSelection(f);});
  $('#garmentPhotoLibrary')?.addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return; if($('#garmentPhotoCamera')) $('#garmentPhotoCamera').value=''; await handleGarmentPhotoSelection(f);});
  $('#wardrobeSearch').addEventListener('input',renderWardrobe);$('#wardrobeGrid').addEventListener('click',e=>{const c=e.target.closest('.garment-card');if(c)openGarmentDetail(c.dataset.id)});
  $('#garmentDetail').addEventListener('click',async e=>{const b=e.target.closest('[data-detail]');if(!b)return;const g=state.garments.find(x=>x.id===b.dataset.id);if(!g)return;if(b.dataset.detail==='edit'){$('#garmentDetailDialog').close();openGarmentForm(g);}if(b.dataset.detail==='toggleClean'){g.clean=!g.clean;await put(STORE_GARMENTS,g);await reload();$('#garmentDetailDialog').close();renderWardrobe();toast(g.clean?'Marcada como limpia':'Marcada como usada');}if(b.dataset.detail==='delete'&&confirm(`¿Eliminar “${g.name}”?`)){await del(STORE_GARMENTS,g.id);await reload();$('#garmentDetailDialog').close();renderWardrobe();toast('Prenda eliminada');}});
- $('#generateBtn').onclick=()=>generateOutfit();$('#regenerateBtn').onclick=()=>generateOutfit();$('#favoriteOutfitBtn').onclick=()=>saveLook({favorite:true});$('#wearOutfitBtn').onclick=()=>saveLook({wear:true});
+ $('#generateBtn').onclick=()=>generateOutfit(false);$('#regenerateBtn').onclick=()=>generateOutfit(true);$('#favoriteOutfitBtn').onclick=()=>saveLook({favorite:true});$('#wearOutfitBtn').onclick=()=>saveLook({wear:true});
  [$('#favoriteList'),$('#historyList')].forEach(el=>el.addEventListener('click',e=>{const b=e.target.closest('[data-look-action]');if(!b)return;if(b.dataset.lookAction==='favorite')toggleLookFavorite(b.dataset.id);else reuseLook(b.dataset.id);}));
  $('#exportBtn').onclick=exportBackup;$('#importInput').addEventListener('change',e=>{if(e.target.files[0])importBackup(e.target.files[0]);e.target.value='';});
  $('#resetBtn').onclick=async()=>{if(confirm('¿Seguro? Se borrará todo el armario de este dispositivo.')){await clearStore(STORE_GARMENTS);await clearStore(STORE_LOOKS);state.currentOutfit=null;await reload();renderWardrobe();toast('Datos eliminados');}};
