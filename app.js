@@ -5,9 +5,9 @@ let state={garments:[],looks:[],currentOutfit:null,filter:'Todos'};
 
 const CATEGORIES=['Camiseta','Polo','Camisa','Jersey','Sudadera','Chaqueta','Cazadora','Abrigo','Pantalón','Vaquero','Chino','Cargo','Short','Zapatillas','Accesorio'];
 const COLORS=['Blanco','Negro','Gris','Beige','Crema','Camel','Marrón','Azul marino','Azul','Azul claro','Verde oliva','Verde','Burdeos','Rojo','Rosa','Amarillo','Naranja','Morado','Denim'];
-const STYLES=['Casual','Smart casual','Formal','Sport','Streetwear'];
+const STYLES=['Casual','Arreglado','Deporte'];
 const SEASONS=['Todo el año','Primavera/Verano','Otoño/Invierno'];
-const OCCASIONS=['Diario','Trabajo','Cena','Salir','Evento','Viaje','Deporte'];
+const OCCASIONS=['Diario','Trabajo','Evento','Entrenar'];
 const TEMPS=['Frío','Templado','Calor'];
 
 const COLOR_FAMILY={
@@ -65,7 +65,7 @@ function setupOptions(){
  $('#garmentStyle').innerHTML=STYLES.map(x=>`<option>${x}</option>`).join('');
  $('#garmentSeason').innerHTML=SEASONS.map(x=>`<option>${x}</option>`).join('');
  $('#garmentOccasions').innerHTML=OCCASIONS.map(x=>`<button type="button" class="check-chip" data-value="${x}">${x}</button>`).join('');
- $('#occasionOptions').innerHTML=OCCASIONS.filter(x=>x!=='Deporte').map((x,i)=>`<button type="button" class="segment ${i===0?'active':''}" data-value="${x}">${x}</button>`).join('');
+ $('#occasionOptions').innerHTML=OCCASIONS.map((x,i)=>`<button type="button" class="segment ${i===0?'active':''}" data-value="${x}">${x}</button>`).join('');
  $('#temperatureOptions').innerHTML=TEMPS.map((x,i)=>`<button type="button" class="segment ${i===1?'active':''}" data-value="${x}">${x}</button>`).join('');
  $('#styleOptions').innerHTML=STYLES.map((x,i)=>`<button type="button" class="segment ${i===0?'active':''}" data-value="${x}">${x}</button>`).join('');
  $('#categoryChips').innerHTML=['Todos',...CATEGORIES].map((x,i)=>`<button class="chip ${i===0?'active':''}" data-cat="${x}">${x}</button>`).join('');
@@ -155,7 +155,7 @@ function seasonMatches(g,temp){if(g.season==='Todo el año')return true;if(temp=
 function categorySlot(cat){if(['Camiseta','Polo','Camisa','Jersey','Sudadera'].includes(cat))return'top';if(['Pantalón','Vaquero','Chino','Cargo','Short'].includes(cat))return'bottom';if(cat==='Zapatillas')return'shoes';if(['Chaqueta','Cazadora','Abrigo'].includes(cat))return'outer';if(cat==='Accesorio')return'accessory';return'other';}
 function colorPairScore(a,b){const fa=COLOR_FAMILY[a]||'neutral',fb=COLOR_FAMILY[b]||'neutral';if(a===b)return 7;if(fa==='neutral'||fb==='neutral')return 10;if(FRIENDLY[fa]?.includes(fb))return 8;return 2;}
 function outfitColorScore(items){if(items.length<2)return 10;let total=0,n=0;for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++){total+=colorPairScore(items[i].color,items[j].color);n++;}return total/n;}
-function garmentScore(g,{occasion,temp,style,onlyClean,avoidRecent}){let s=0;if(onlyClean&&!g.clean)return -999;if(!seasonMatches(g,temp))s-=15;else s+=8;if((g.occasions||[]).includes(occasion))s+=16;if(g.style===style)s+=12;else if((style==='Smart casual'&&['Casual','Formal'].includes(g.style))||(style==='Casual'&&g.style==='Smart casual'))s+=5;if(avoidRecent&&g.lastWorn){const days=(Date.now()-new Date(g.lastWorn).getTime())/86400000;if(days<2)s-=18;else if(days<5)s-=8;}s-=Math.min(g.useCount||0,20)*.15;return s;}
+function garmentScore(g,{occasion,temp,style,onlyClean,avoidRecent}){let s=0;if(onlyClean&&!g.clean)return -999;if(!seasonMatches(g,temp))s-=15;else s+=8;if((g.occasions||[]).includes(occasion))s+=16;if(g.style===style)s+=12;else if((style==='Arreglado'&&g.style==='Casual')||(style==='Casual'&&g.style==='Arreglado'))s+=3;if(avoidRecent&&g.lastWorn){const days=(Date.now()-new Date(g.lastWorn).getTime())/86400000;if(days<2)s-=18;else if(days<5)s-=8;}s-=Math.min(g.useCount||0,20)*.15;return s;}
 function weightedPick(arr,ctx,exclude=[]){const candidates=arr.filter(x=>!exclude.includes(x.id)).map(g=>({g,s:garmentScore(g,ctx)+Math.random()*8})).filter(x=>x.s>-900).sort((a,b)=>b.s-a.s);if(!candidates.length)return null;const top=candidates.slice(0,Math.min(5,candidates.length));return top[Math.floor(Math.random()*top.length)].g;}
 function generateOutfit(forceRandom=false){
  if(state.garments.length<3){toast('Añade al menos 3 prendas para generar un outfit');return;}
@@ -172,7 +172,12 @@ function generateOutfit(forceRandom=false){
  state.currentOutfit={id:uid(),garmentIds:best.map(x=>x.id),occasion,temp,style,score,createdAt:new Date().toISOString(),favorite:false,wornAt:null};renderCurrentOutfit();
 }
 function renderCurrentOutfit(){const o=state.currentOutfit;if(!o)return;const gs=o.garmentIds.map(id=>state.garments.find(g=>g.id===id)).filter(Boolean);$('#outfitTitle').textContent=`${o.occasion} · ${o.style}`;$('#outfitScore').textContent=`${o.score}%`;$('#outfitPhotos').innerHTML=gs.map(g=>`<article class="outfit-item"><img src="${g.photo}" alt="${escapeHTML(g.name)}"><div><b>${escapeHTML(g.name)}</b><small>${g.color} · ${g.category}</small></div></article>`).join('');const colors=[...new Set(gs.map(g=>g.color))].join(' · ');$('#outfitReason').innerHTML=`<b>Por qué funciona</b><br>Paleta: ${escapeHTML(colors)}. La combinación está equilibrada para <b>${o.occasion.toLowerCase()}</b>, con un nivel de formalidad próximo a <b>${o.style.toLowerCase()}</b> y prendas adecuadas para tiempo <b>${o.temp.toLowerCase()}</b>.`;$('#favoriteOutfitBtn').textContent=o.favorite?'♥ Favorito':'♡ Favorito';$('#outfitResult').classList.remove('hidden');$('#outfitResult').scrollIntoView({behavior:'smooth',block:'start'});}
-async function saveLook({wear=false,favorite=false}={}){if(!state.currentOutfit)return;const o={...state.currentOutfit};if(wear)o.wornAt=new Date().toISOString();if(favorite)o.favorite=!o.favorite;await put(STORE_LOOKS,o);if(wear){for(const id of o.garmentIds){const g=state.garments.find(x=>x.id===id);if(!g)continue;g.lastWorn=o.wornAt;g.useCount=(g.useCount||0)+1;g.clean=false;await put(STORE_GARMENTS,g);}}state.currentOutfit=o;await reload();renderCurrentOutfit();toast(wear?'Outfit guardado como usado hoy':o.favorite?'Añadido a favoritos':'Quitado de favoritos');}
+async function saveLook({wear=false,favorite=false}={}){if(!state.currentOutfit)return;const o={...state.currentOutfit};if(wear)o.wornAt=new Date().toISOString();if(favorite)o.favorite=!o.favorite;await put(STORE_LOOKS,o);if(wear){for(const id of o.garmentIds){const g=state.garments.find(x=>x.id===id);if(!g)continue;g.lastWorn=o.wornAt;g.useCount=(g.useCount||0)+1;
+// Solo la ropa de deporte pasa automáticamente a "para lavar".
+// El resto de prendas, incluidas las zapatillas, se cambian manualmente.
+const isSportGarment = g.style==='Deporte' || (g.occasions||[]).includes('Entrenar');
+if(isSportGarment) g.clean=false;
+await put(STORE_GARMENTS,g);}}state.currentOutfit=o;await reload();renderCurrentOutfit();toast(wear?'Outfit guardado. Solo la ropa de deporte pasa automáticamente a lavar.':o.favorite?'Añadido a favoritos':'Quitado de favoritos');}
 
 function lookCardHTML(o,compact=false){const gs=o.garmentIds.map(id=>state.garments.find(g=>g.id===id)).filter(Boolean);return `<article class="look-card"><div class="look-head"><div><b>${escapeHTML(o.occasion)} · ${escapeHTML(o.style)}</b><br><small>${new Date(o.wornAt||o.createdAt).toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'})}</small></div><span class="score-pill">${o.score||'—'}%</span></div><div class="look-images">${gs.map(g=>`<img src="${g.photo}" alt="${escapeHTML(g.name)}">`).join('')}</div>${compact?'':`<div class="button-row"><button class="secondary" data-look-action="reuse" data-id="${o.id}">Ver outfit</button><button class="secondary" data-look-action="favorite" data-id="${o.id}">${o.favorite?'♥ Favorito':'♡ Favorito'}</button></div>`}</article>`;}
 function renderFavorites(){const xs=state.looks.filter(x=>x.favorite).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));$('#favoriteList').innerHTML=xs.length?xs.map(x=>lookCardHTML(x)).join(''):'<div class="empty-card">Todavía no has guardado ningún outfit favorito.</div>';}

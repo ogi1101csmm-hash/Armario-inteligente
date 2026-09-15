@@ -40,3 +40,12 @@ PWA estática lista para GitHub Pages. Guarda prendas, fotos, favoritos e histor
 - Las prendas para lavar se mantienen con el mosaico completo en rojo.
 
 - Al añadir prendas, ahora puedes elegir entre hacer una foto con la cámara o subirla desde la fototeca.
+
+- Las zapatillas no se marcan automáticamente como sucias al usar un outfit. Solo pueden cambiarse manualmente a “para lavar”.
+
+- Al usar un outfit, la ropa normal NO pasa automáticamente a lavar.
+- Solo las prendas con estilo Sport o con ocasión Deporte se marcan automáticamente para lavar.
+- Zapatillas y resto de prendas se cambian manualmente.
+
+- En “¿Para qué me visto?” solo aparecen: Diario, Trabajo, Evento y Entrenar.
+- En “Estilo” solo aparecen: Casual, Arreglado y Deporte.
