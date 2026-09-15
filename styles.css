@@ -29,3 +29,16 @@ main{padding:0 14px}.view{display:none}.view.active{display:block}
 .detected-palette{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}.detected-palette .palette-chip{background:#1c2129}.danger-zone{border-color:#4b3333}
 @media (max-width:680px){.garment-grid,.outfit-grid,.quick-grid{grid-template-columns:1fr 1fr}.stats-grid{grid-template-columns:1fr 1fr 1fr}.form-grid{grid-template-columns:1fr}.hero-card h2{font-size:24px}}
 @media (max-width:520px){.garment-grid,.outfit-grid,.quick-grid{grid-template-columns:1fr}.toolbar-row{flex-direction:column}.stats-grid{grid-template-columns:1fr 1fr}.stats-grid .stat-card:last-child{grid-column:1/-1}}
+
+/* v3: visibilidad de prendas para lavar */
+.garment-card.needs-wash{
+  background:#6f2026;
+  border:2px solid #ff6b73;
+  box-shadow:0 0 0 1px rgba(255,107,115,.18),0 12px 32px rgba(120,20,30,.28);
+}
+.garment-card.needs-wash .garment-body{background:linear-gradient(180deg,#81262d,#641b21);}
+.garment-card.needs-wash .garment-body h4,.garment-card.needs-wash .muted{color:#fff;}
+.garment-card.needs-wash .tag{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.18);}
+.garment-card.needs-wash .pill-dirty{background:#ff6b73;color:#311015;border-color:#ff9ca2;font-weight:900;}
+.garment-card.needs-wash img{filter:saturate(.82) brightness(.78);}
+.laundry-note{margin:6px 0 12px;color:#ff9ca2;font-size:12px;line-height:1.35;}

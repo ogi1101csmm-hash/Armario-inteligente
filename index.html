@@ -140,7 +140,7 @@
   </div>
 
   <dialog id="garmentDialog" class="modal">
-    <form method="dialog" id="garmentForm">
+    <form id="garmentForm">
       <div class="modal-head"><h2 id="garmentModalTitle">Añadir prenda</h2><button type="button" class="icon-btn small-btn" id="closeGarmentDialog">×</button></div>
       <input type="hidden" id="garmentId" />
       <div class="photo-upload" id="photoDrop">
@@ -151,7 +151,7 @@
       <div id="detectedPalette" class="detected-palette hidden"></div>
       <label>Nombre<input id="garmentName" required placeholder="Ej. Camisa Oxford blanca" /></label>
       <div class="form-grid">
-        <label>Tipo<select id="garmentCategory" required></select></label>
+        <label>Tipo de prenda<select id="garmentType" required></select></label>
         <label>Color base<select id="garmentColor" required></select></label>
       </div>
       <div class="form-grid">
@@ -160,7 +160,7 @@
       </div>
       <label>Ocasiones</label>
       <div id="garmentOccasions" class="check-chips"></div>
-      <label class="check-row"><input id="garmentClean" type="checkbox" checked /> <span>Está limpia / disponible</span></label>
+      <label class="check-row"><input id="garmentClean" type="checkbox" checked /> <span>Limpia / disponible</span></label><p class="laundry-note">Si la desmarcas, la prenda aparecerá completamente en rojo como “PARA LAVAR”.</p>
       <button type="submit" class="primary wide">Guardar prenda</button>
     </form>
   </dialog>
@@ -170,6 +170,6 @@
   </dialog>
 
   <div id="toast" class="toast"></div>
-  <script src="app.js?v=2"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>
