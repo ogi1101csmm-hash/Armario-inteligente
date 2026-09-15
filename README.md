@@ -56,3 +56,6 @@ PWA estática lista para GitHub Pages. Guarda prendas, fotos, favoritos e histor
 
 - El generador descarta cualquier outfit con prendas que no peguen entre sí.
 - Si una camiseta no combina con el pantalón o las zapatillas disponibles, ya no aparece como alternativa en “Otro outfit”.
+
+- Cada prenda puede pertenecer a uno o varios estilos.
+- El generador solo usa prendas que incluyan exactamente el estilo seleccionado (Casual, Arreglado o Deporte).

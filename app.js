@@ -62,7 +62,7 @@ async function handleGarmentPhotoSelection(file){
 function setupOptions(){
  $('#garmentCategory').innerHTML=CATEGORIES.map(x=>`<option>${x}</option>`).join('');
  $('#garmentColor').innerHTML=COLORS.map(x=>`<option>${x}</option>`).join('');
- $('#garmentStyle').innerHTML=STYLES.map(x=>`<option>${x}</option>`).join('');
+ $('#garmentStyles').innerHTML=STYLES.map(x=>`<button type="button" class="check-chip" data-value="${x}">${x}</button>`).join('');
  $('#garmentSeason').innerHTML=SEASONS.map(x=>`<option>${x}</option>`).join('');
  $('#garmentOccasions').innerHTML=OCCASIONS.map(x=>`<button type="button" class="check-chip" data-value="${x}">${x}</button>`).join('');
  $('#occasionOptions').innerHTML=OCCASIONS.map((x,i)=>`<button type="button" class="segment ${i===0?'active':''}" data-value="${x}">${x}</button>`).join('');
@@ -73,6 +73,7 @@ function setupOptions(){
 }
 function bindSegments(){
  $$('.segmented').forEach(group=>group.addEventListener('click',e=>{const b=e.target.closest('.segment');if(!b)return;group.querySelectorAll('.segment').forEach(x=>x.classList.remove('active'));b.classList.add('active');}));
+ $('#garmentStyles').addEventListener('click',e=>{const b=e.target.closest('.check-chip');if(b)b.classList.toggle('active')});
  $('#garmentOccasions').addEventListener('click',e=>{const b=e.target.closest('.check-chip');if(b)b.classList.toggle('active')});
  $('#categoryChips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;state.filter=b.dataset.cat;$$('#categoryChips .chip').forEach(x=>x.classList.toggle('active',x===b));renderWardrobe();});
 }
@@ -139,22 +140,27 @@ function paletteCompatibility(items){
 
 function openGarmentForm(g=null){
  $('#garmentForm').reset();$('#garmentId').value=g?.id||'';$('#garmentModalTitle').textContent=g?'Editar prenda':'Añadir prenda';
- $('#garmentName').value=g?.name||'';$('#garmentCategory').value=g?.category||CATEGORIES[0];$('#garmentColor').value=g?.color||COLORS[0];$('#garmentStyle').value=g?.style||STYLES[0];$('#garmentSeason').value=g?.season||SEASONS[0];$('#garmentClean').checked=g?.clean??true;
+ $('#garmentName').value=g?.name||'';$('#garmentCategory').value=g?.category||CATEGORIES[0];$('#garmentColor').value=g?.color||COLORS[0];$('#garmentSeason').value=g?.season||SEASONS[0];$('#garmentClean').checked=g?.clean??true;
+ const styleList=(g?.styles&&g.styles.length?g.styles:[g?.style].filter(Boolean));
+ $$('#garmentStyles .check-chip').forEach(b=>b.classList.toggle('active',styleList.includes(b.dataset.value)));
  $$('#garmentOccasions .check-chip').forEach(b=>b.classList.toggle('active',g?.occasions?.includes(b.dataset.value)??false));
  if(g?.photo){$('#photoPreview').src=g.photo;$('#photoPreview').classList.remove('hidden');$('#photoPlaceholder').classList.add('hidden');}else{$('#photoPreview').classList.add('hidden');$('#photoPlaceholder').classList.remove('hidden');}
  if($('#garmentPhotoCamera')) $('#garmentPhotoCamera').value=''; if($('#garmentPhotoLibrary')) $('#garmentPhotoLibrary').value=''; $('#garmentDialog').dataset.palette=g?.palette?JSON.stringify(g.palette):'';$('#garmentDialog').showModal();
 }
 async function saveGarment(e){
  e.preventDefault(); const id=$('#garmentId').value||uid(); const existing=state.garments.find(x=>x.id===id); let photo=existing?.photo||''; const file=getSelectedGarmentFile(); if(file)photo=await compressImage(file); if(!photo){toast('Añade una foto de la prenda');return;}
- const palette=$('#garmentDialog').dataset.palette?JSON.parse($('#garmentDialog').dataset.palette):existing?.palette||null; const g={id,name:$('#garmentName').value.trim(),category:$('#garmentCategory').value,color:$('#garmentColor').value,style:$('#garmentStyle').value,season:$('#garmentSeason').value,occasions:$$('#garmentOccasions .check-chip.active').map(b=>b.dataset.value),clean:$('#garmentClean').checked,photo,palette,createdAt:existing?.createdAt||new Date().toISOString(),lastWorn:existing?.lastWorn||null,useCount:existing?.useCount||0};
+ const styles=$$('#garmentStyles .check-chip.active').map(b=>b.dataset.value); if(!styles.length){toast('Selecciona al menos un estilo');return;}
+ const palette=$('#garmentDialog').dataset.palette?JSON.parse($('#garmentDialog').dataset.palette):existing?.palette||null; const g={id,name:$('#garmentName').value.trim(),category:$('#garmentCategory').value,color:$('#garmentColor').value,style:styles[0],styles,season:$('#garmentSeason').value,occasions:$$('#garmentOccasions .check-chip.active').map(b=>b.dataset.value),clean:$('#garmentClean').checked,photo,palette,createdAt:existing?.createdAt||new Date().toISOString(),lastWorn:existing?.lastWorn||null,useCount:existing?.useCount||0};
  await put(STORE_GARMENTS,g);await reload();$('#garmentDialog').close();toast(existing?'Prenda actualizada':'Prenda añadida');
 }
-function openGarmentDetail(id){const g=state.garments.find(x=>x.id===id);if(!g)return;$('#garmentDetail').innerHTML=`<img class="detail-photo" src="${g.photo}" alt="${escapeHTML(g.name)}"><h2 style="margin-top:14px">${escapeHTML(g.name)}</h2><div class="detail-tags"><span class="tag">${g.category}</span><span class="tag">${g.color}</span><span class="tag">${g.style}</span><span class="tag">${g.season}</span><span class="tag">${g.clean?'✓ Limpia':'Por lavar'}</span></div><p class="muted small">${(g.occasions||[]).length?'Ideal para: '+g.occasions.join(', '):'Sin ocasiones configuradas.'}</p><div class="detail-actions"><button class="secondary" data-detail="toggleClean" data-id="${g.id}">${g.clean?'Marcar usada':'Marcar limpia'}</button><button class="secondary" data-detail="edit" data-id="${g.id}">Editar</button><button class="danger" data-detail="delete" data-id="${g.id}">Eliminar</button></div>`;$('#garmentDetailDialog').showModal();}
+function openGarmentDetail(id){const g=state.garments.find(x=>x.id===id);if(!g)return;const styleList=(g.styles&&g.styles.length?g.styles:[g.style].filter(Boolean));$('#garmentDetail').innerHTML=`<img class="detail-photo" src="${g.photo}" alt="${escapeHTML(g.name)}"><h2 style="margin-top:14px">${escapeHTML(g.name)}</h2><div class="detail-tags"><span class="tag">${g.category}</span><span class="tag">${g.color}</span>${styleList.map(st=>`<span class=\"tag\">${st}</span>`).join('')}<span class="tag">${g.season}</span><span class="tag">${g.clean?'✓ Limpia':'Por lavar'}</span></div><p class="muted small">${(g.occasions||[]).length?'Ideal para: '+g.occasions.join(', '):'Sin ocasiones configuradas.'}</p><div class="detail-actions"><button class="secondary" data-detail="toggleClean" data-id="${g.id}">${g.clean?'Marcar usada':'Marcar limpia'}</button><button class="secondary" data-detail="edit" data-id="${g.id}">Editar</button><button class="danger" data-detail="delete" data-id="${g.id}">Eliminar</button></div>`;$('#garmentDetailDialog').showModal();}
 
 function seasonMatches(g,temp){if(g.season==='Todo el año')return true;if(temp==='Calor')return g.season==='Primavera/Verano';if(temp==='Frío')return g.season==='Otoño/Invierno';return true;}
 function categorySlot(cat){if(['Camiseta','Polo','Camisa','Jersey','Sudadera'].includes(cat))return'top';if(['Pantalón','Vaquero','Chino','Cargo','Short'].includes(cat))return'bottom';if(cat==='Zapatillas')return'shoes';if(['Chaqueta','Cazadora','Abrigo'].includes(cat))return'outer';if(cat==='Accesorio')return'accessory';return'other';}
 function colorPairScore(a,b){const fa=COLOR_FAMILY[a]||'neutral',fb=COLOR_FAMILY[b]||'neutral';if(a===b)return 7;if(fa==='neutral'||fb==='neutral')return 10;if(FRIENDLY[fa]?.includes(fb))return 8;return 2;}
 function outfitColorScore(items){if(items.length<2)return 10;let total=0,n=0;for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++){total+=colorPairScore(items[i].color,items[j].color);n++;}return total/n;}
+function garmentStyles(g){return Array.isArray(g.styles)&&g.styles.length?g.styles:[g.style].filter(Boolean);}
+function garmentSupportsStyle(g,style){return garmentStyles(g).includes(style);}
 function incompatiblePairCount(items){
  let bad=0;
  for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++){
@@ -177,7 +183,7 @@ function isAcceptableOutfit(items,colorBase,palette){
  if(topAndShoesClash(items)) return false;
  return true;
 }
-function garmentScore(g,{occasion,temp,style,onlyClean,avoidRecent}){let s=0;if(onlyClean&&!g.clean)return -999;if(!seasonMatches(g,temp))s-=15;else s+=8;if((g.occasions||[]).includes(occasion))s+=16;if(g.style===style)s+=12;else if((style==='Arreglado'&&g.style==='Casual')||(style==='Casual'&&g.style==='Arreglado'))s+=3;if(avoidRecent&&g.lastWorn){const days=(Date.now()-new Date(g.lastWorn).getTime())/86400000;if(days<2)s-=18;else if(days<5)s-=8;}s-=Math.min(g.useCount||0,20)*.15;return s;}
+function garmentScore(g,{occasion,temp,style,onlyClean,avoidRecent}){let s=0;if(onlyClean&&!g.clean)return -999;if(!garmentSupportsStyle(g,style))return -999;if(!seasonMatches(g,temp))s-=15;else s+=8;if((g.occasions||[]).includes(occasion))s+=16;else if((g.occasions||[]).includes('Diario'))s+=4; if(avoidRecent&&g.lastWorn){const days=(Date.now()-new Date(g.lastWorn).getTime())/86400000;if(days<2)s-=18;else if(days<5)s-=8;}s-=Math.min(g.useCount||0,20)*.15;return s;}
 function weightedPick(arr,ctx,exclude=[]){const candidates=arr.filter(x=>!exclude.includes(x.id)).map(g=>({g,s:garmentScore(g,ctx)+Math.random()*8})).filter(x=>x.s>-900).sort((a,b)=>b.s-a.s);if(!candidates.length)return null;const top=candidates.slice(0,Math.min(5,candidates.length));return top[Math.floor(Math.random()*top.length)].g;}
 function outfitKey(items){
  return items.slice().sort((a,b)=>categorySlot(a.category).localeCompare(categorySlot(b.category))).map(g=>g.id).join('|');
@@ -258,7 +264,7 @@ function renderCurrentOutfit(){const o=state.currentOutfit;if(!o)return;const gs
 async function saveLook({wear=false,favorite=false}={}){if(!state.currentOutfit)return;const o={...state.currentOutfit};if(wear)o.wornAt=new Date().toISOString();if(favorite)o.favorite=!o.favorite;await put(STORE_LOOKS,o);if(wear){for(const id of o.garmentIds){const g=state.garments.find(x=>x.id===id);if(!g)continue;g.lastWorn=o.wornAt;g.useCount=(g.useCount||0)+1;
 // Solo la ropa de deporte pasa automáticamente a "para lavar".
 // El resto de prendas, incluidas las zapatillas, se cambian manualmente.
-const isSportGarment = g.style==='Deporte' || (g.occasions||[]).includes('Entrenar');
+const isSportGarment = garmentSupportsStyle(g,'Deporte') || (g.occasions||[]).includes('Entrenar');
 if(isSportGarment) g.clean=false;
 await put(STORE_GARMENTS,g);}}state.currentOutfit=o;await reload();renderCurrentOutfit();toast(wear?'Outfit guardado. Solo la ropa de deporte pasa automáticamente a lavar.':o.favorite?'Añadido a favoritos':'Quitado de favoritos');}
 
