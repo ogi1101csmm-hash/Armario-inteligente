@@ -42,3 +42,5 @@ main{padding:0 14px}.view{display:none}.view.active{display:block}
 .garment-card.needs-wash .pill-dirty{background:#ff6b73;color:#311015;border-color:#ff9ca2;font-weight:900;}
 .garment-card.needs-wash img{filter:saturate(.82) brightness(.78);}
 .laundry-note{margin:6px 0 12px;color:#ff9ca2;font-size:12px;line-height:1.35;}
+
+.modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.72);display:flex;align-items:flex-end;justify-content:center;padding:24px 12px calc(24px + env(safe-area-inset-bottom));overflow:auto}.modal-overlay.hidden{display:none!important}.modal-panel{width:min(100%,640px);max-height:92vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:18px;box-shadow:0 20px 70px rgba(0,0,0,.45)}body.modal-open{overflow:hidden}

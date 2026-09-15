@@ -139,7 +139,7 @@
     </nav>
   </div>
 
-  <dialog id="garmentDialog" class="modal">
+  <div id="garmentDialog" class="modal-overlay hidden" role="dialog" aria-modal="true"><div class="modal-panel">
     <form id="garmentForm">
       <div class="modal-head"><h2 id="garmentModalTitle">Añadir prenda</h2><button type="button" class="icon-btn small-btn" id="closeGarmentDialog">×</button></div>
       <input type="hidden" id="garmentId" />
@@ -163,13 +163,13 @@
       <label class="check-row"><input id="garmentClean" type="checkbox" checked /> <span>Limpia / disponible</span></label><p class="laundry-note">Si la desmarcas, la prenda aparecerá completamente en rojo como “PARA LAVAR”.</p>
       <button type="submit" class="primary wide" id="saveGarmentBtn">Guardar prenda</button>
     </form>
-  </dialog>
+    </div></div>
 
-  <dialog id="garmentDetailDialog" class="modal detail-modal">
+  <div id="garmentDetailDialog" class="modal-overlay hidden detail-modal" role="dialog" aria-modal="true"><div class="modal-panel">
     <div id="garmentDetail"></div>
-  </dialog>
+    </div></div>
 
   <div id="toast" class="toast"></div>
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>

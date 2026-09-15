@@ -67,6 +67,9 @@ function escapeHtml(str=''){ return str.replace(/[&<>"']/g,m=>({'&':'&amp;','<':
 function uuid(){ return (crypto.randomUUID?.() || String(Date.now()+Math.random())); }
 function navigate(view){ ui.currentView = view; $$('.view').forEach(v=>v.classList.toggle('active', v.dataset.view===view)); $$('.nav-item').forEach(b=>b.classList.toggle('active', b.dataset.nav===view)); $('#pageTitle').textContent = ({home:'Inicio',wardrobe:'Armario',generator:'Generador',favorites:'Favoritos',history:'Historial',settings:'Ajustes'})[view] || 'Mi Armario'; }
 
+function openAppModal(id){ const el=$(id); if(!el) return; el.classList.remove('hidden'); document.body.classList.add('modal-open'); }
+function closeAppModal(id){ const el=$(id); if(!el) return; el.classList.add('hidden'); if(!document.querySelector('.modal-overlay:not(.hidden)')) document.body.classList.remove('modal-open'); }
+
 function init(){
   fillSelects();
   renderOptionButtons();
@@ -96,18 +99,23 @@ function refreshRequiredGarmentSelect(){
 }
 
 function attachEvents(){
+  // Eventos directos para Safari/iPhone. No dependemos de delegación para abrir el alta.
+  const addTop=$('#quickAddBtn'); if(addTop) addTop.onclick=()=>openGarmentDialog();
+  const addWardrobe=$('#openAddGarment'); if(addWardrobe) addWardrobe.onclick=()=>openGarmentDialog();
+
   document.addEventListener('click', e=>{
     const nav = e.target.closest('[data-nav]'); if(nav){ navigate(nav.dataset.nav); }
-    const quick = e.target.closest('#quickAddBtn, #openAddGarment'); if(quick){ openGarmentDialog(); }
     const action = e.target.closest('[data-action="randomLook"]'); if(action){ generateOutfit(true); }
     const seg = e.target.closest('[data-group]'); if(seg){ ui[seg.dataset.group]=seg.dataset.value; renderOptionButtons(); }
     const cat = e.target.closest('[data-cat]'); if(cat){ ui.categoryFilter=cat.dataset.cat; renderWardrobe(); renderOptionButtons(); }
     const occ = e.target.closest('.check-chip[data-occ]'); if(occ){ occ.classList.toggle('active'); }
     const garmentCard = e.target.closest('.garment-card[data-id]'); if(garmentCard){ showGarmentDetail(garmentCard.dataset.id); }
     const favCard = e.target.closest('.look-card[data-looktype]'); if(favCard && e.target.closest('[data-loadoutfit]')){ loadSavedLook(favCard.dataset.looktype, favCard.dataset.id); }
+    if(e.target.id==='garmentDialog') closeAppModal('#garmentDialog');
+    if(e.target.id==='garmentDetailDialog') closeAppModal('#garmentDetailDialog');
   });
 
-  $('#closeGarmentDialog').addEventListener('click',()=>$('#garmentDialog').close());
+  $('#closeGarmentDialog').onclick=()=>closeAppModal('#garmentDialog');
   $('#garmentPhoto').addEventListener('change', handlePhotoUpload);
   $('#garmentForm').addEventListener('submit', saveGarment);
   $('#wardrobeSearch').addEventListener('input', renderWardrobe);
@@ -279,7 +287,7 @@ function saveGarment(e){
       state = JSON.parse(previousState);
       return;
     }
-    $('#garmentDialog').close();
+    closeAppModal('#garmentDialog');
     renderAll();
     toast(idx>=0 ? 'Prenda actualizada' : 'Prenda añadida');
   }catch(err){
@@ -297,7 +305,7 @@ function openGarmentDialog(garment=null){
   } else {
     $('#garmentModalTitle').textContent='Añadir prenda'; $('#garmentId').value='';
   }
-  $('#garmentDialog').showModal();
+  openAppModal('#garmentDialog');
 }
 
 function legacyTypeFor(category){ return ({tops:'camiseta',bottoms:'pantalon',outerwear:'chaqueta',shoes:'zapatillas',accessories:'cinturon'})[category] || 'camiseta'; }
@@ -343,9 +351,9 @@ function labelForCategory(id){ return CATEGORIES.find(c=>c.id===id)?.label || id
 function showGarmentDetail(id){
   const g = state.garments.find(x=>x.id===id); if(!g) return;
   $('#garmentDetail').innerHTML = `<div class="detail-content"><img src="${g.photo}"><h3>${escapeHtml(g.name)}</h3><p>${g.color} · ${labelForType(g)} · ${g.style}</p><div class="palette-row">${renderPaletteInline(g)}</div><div class="button-row" style="margin-top:14px"><button class="secondary" id="editGarmentBtn">Editar</button><button class="danger" id="deleteGarmentBtn">Eliminar</button></div></div>`;
-  $('#garmentDetailDialog').showModal();
-  $('#editGarmentBtn').onclick = ()=>{ $('#garmentDetailDialog').close(); openGarmentDialog(g); };
-  $('#deleteGarmentBtn').onclick = ()=>{ if(confirm('¿Eliminar esta prenda?')){ state.garments = state.garments.filter(x=>x.id!==id); saveState(); renderAll(); $('#garmentDetailDialog').close(); toast('Prenda eliminada'); } };
+  openAppModal('#garmentDetailDialog');
+  $('#editGarmentBtn').onclick = ()=>{ closeAppModal('#garmentDetailDialog'); openGarmentDialog(g); };
+  $('#deleteGarmentBtn').onclick = ()=>{ if(confirm('¿Eliminar esta prenda?')){ state.garments = state.garments.filter(x=>x.id!==id); saveState(); renderAll(); closeAppModal('#garmentDetailDialog'); toast('Prenda eliminada'); } };
 }
 
 function renderPaletteInline(g){

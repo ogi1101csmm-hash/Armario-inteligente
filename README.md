@@ -16,3 +16,10 @@ Cambios:
 - Se captura el error de cuota de Safari/localStorage.
 - El formulario de alta guarda de forma explícita y no cierra hasta confirmar que los datos se han persistido.
 - Service Worker actualizado a v5 para evitar JavaScript antiguo en caché.
+
+
+## v6
+- Botón + Prenda con evento directo.
+- Se elimina la dependencia de `<dialog>` para el alta y edición.
+- Modal propio compatible con Safari/iPhone.
+- Cierre tocando fuera del formulario o con X.
