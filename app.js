@@ -47,7 +47,20 @@ function loadState(){
   }
   return {garments:[], favorites:[], history:[]};
 }
-function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function saveState(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return true;
+  }catch(err){
+    console.error('No se pudieron guardar los datos', err);
+    if(err?.name==='QuotaExceededError' || err?.code===22){
+      toast('No hay espacio suficiente. Las fotos se comprimen automáticamente; elimina alguna prenda antigua si continúa.');
+    }else{
+      toast('Safari no ha podido guardar los datos.');
+    }
+    return false;
+  }
+}
 const $ = s => document.querySelector(s); const $$ = s => [...document.querySelectorAll(s)];
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._timer); t._timer=setTimeout(()=>t.classList.remove('show'),1800); }
 function escapeHtml(str=''){ return str.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
@@ -109,13 +122,22 @@ function attachEvents(){
 
 async function handlePhotoUpload(e){
   const file = e.target.files?.[0]; if(!file) return;
-  const dataUrl = await readFileAsDataURL(file);
-  $('#photoPreview').src = dataUrl; $('#photoPreview').classList.remove('hidden'); $('#photoPlaceholder').classList.add('hidden');
-  const palette = await extractPalette(dataUrl);
-  const inferred = inferNamedColor(palette.primary);
-  $('#garmentColor').value = inferred.name;
-  renderDetectedPalette(palette, inferred.name);
-  $('#garmentDialog').dataset.palette = JSON.stringify({...palette, inferred: inferred.name});
+  try{
+    toast('Preparando foto…');
+    const dataUrl = await compressImageFile(file, 1100, 0.76);
+    $('#photoPreview').src = dataUrl;
+    $('#photoPreview').classList.remove('hidden');
+    $('#photoPlaceholder').classList.add('hidden');
+    const palette = await extractPalette(dataUrl);
+    const inferred = inferNamedColor(palette.primary);
+    $('#garmentColor').value = inferred.name;
+    renderDetectedPalette(palette, inferred.name);
+    $('#garmentDialog').dataset.palette = JSON.stringify({...palette, inferred: inferred.name});
+    toast('Foto lista');
+  }catch(err){
+    console.error('Error procesando foto', err);
+    toast('No se pudo procesar la foto. Prueba otra imagen.');
+  }
 }
 function renderDetectedPalette(palette, inferredName){
   const host = $('#detectedPalette');
@@ -125,7 +147,37 @@ function renderDetectedPalette(palette, inferredName){
   }).join('');
   host.classList.remove('hidden');
 }
-function readFileAsDataURL(file){ return new Promise((resolve,reject)=>{ const fr=new FileReader(); fr.onload=()=>resolve(fr.result); fr.onerror=reject; fr.readAsDataURL(file); }); }
+function readFileAsDataURL(file){
+  return new Promise((resolve,reject)=>{
+    const fr=new FileReader();
+    fr.onload=()=>resolve(fr.result);
+    fr.onerror=reject;
+    fr.readAsDataURL(file);
+  });
+}
+
+async function compressImageFile(file, maxDimension=1100, quality=0.76){
+  const source = await readFileAsDataURL(file);
+  const img = await loadImage(source);
+  let width = img.naturalWidth || img.width;
+  let height = img.naturalHeight || img.height;
+  if(!width || !height) throw new Error('Dimensiones de imagen no válidas');
+
+  const scale = Math.min(1, maxDimension / Math.max(width, height));
+  width = Math.max(1, Math.round(width * scale));
+  height = Math.max(1, Math.round(height * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0,0,width,height);
+  ctx.drawImage(img,0,0,width,height);
+
+  // JPEG reduce drásticamente una foto de iPhone antes de guardarla en Safari.
+  return canvas.toDataURL('image/jpeg', quality);
+}
 
 function rgbToHsl(r,g,b){
   r/=255; g/=255; b/=255;
@@ -221,8 +273,12 @@ function saveGarment(e){
     };
 
     const idx = state.garments.findIndex(g=>g.id===id);
+    const previousState = JSON.stringify(state);
     if(idx>=0) state.garments[idx]=garment; else state.garments.unshift(garment);
-    saveState();
+    if(!saveState()){
+      state = JSON.parse(previousState);
+      return;
+    }
     $('#garmentDialog').close();
     renderAll();
     toast(idx>=0 ? 'Prenda actualizada' : 'Prenda añadida');
