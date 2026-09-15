@@ -144,8 +144,11 @@
       <input type="hidden" id="garmentId" />
       <div class="photo-upload" id="photoDrop">
         <img id="photoPreview" alt="Vista previa" class="hidden" />
-        <div id="photoPlaceholder"><span>📷</span><b>Añadir foto</b><small>Hazla con buena luz y fondo sencillo</small></div>
-        <input type="file" id="garmentPhoto" accept="image/*" capture="environment" />
+        <div id="photoPlaceholder"><span>📷</span><b>Añadir foto</b><small>Puedes hacer una foto o elegirla desde la fototeca</small></div>
+        <div class="photo-source-actions">
+          <label class="secondary file-pick">Hacer foto<input type="file" id="garmentPhotoCamera" accept="image/*" capture="environment" /></label>
+          <label class="secondary file-pick">Elegir de fototeca<input type="file" id="garmentPhotoLibrary" accept="image/*" /></label>
+        </div>
       </div>
       <label>Nombre<input id="garmentName" required placeholder="Ej. Camisa Oxford blanca" /></label>
       <div class="form-grid">
@@ -168,6 +171,6 @@
   </dialog>
 
   <div id="toast" class="toast"></div>
-  <script src="app.js?v=8"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>

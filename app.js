@@ -38,6 +38,27 @@ function navigate(view){$$('.view').forEach(v=>v.classList.toggle('active',v.dat
 
 async function compressImage(file,max=1200,quality=.78){return new Promise((resolve,reject)=>{const img=new Image(),url=URL.createObjectURL(file);img.onload=()=>{let w=img.width,h=img.height;if(Math.max(w,h)>max){const r=max/Math.max(w,h);w*=r;h*=r;}const c=document.createElement('canvas');c.width=Math.round(w);c.height=Math.round(h);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);resolve(c.toDataURL('image/jpeg',quality));};img.onerror=reject;img.src=url;});}
 
+function getSelectedGarmentFile(){
+ const camera=$('#garmentPhotoCamera')?.files?.[0];
+ const library=$('#garmentPhotoLibrary')?.files?.[0];
+ return camera || library || null;
+}
+async function handleGarmentPhotoSelection(file){
+ if(!file)return;
+ const img=await compressImage(file);
+ $('#photoPreview').src=img;
+ $('#photoPreview').classList.remove('hidden');
+ $('#photoPlaceholder').classList.add('hidden');
+ try{
+   const palette=await extractPaletteFromDataUrl(img);
+   $('#garmentDialog').dataset.palette=JSON.stringify(palette);
+   const detected=palette.primary.name;
+   if(COLORS.includes(detected)) $('#garmentColor').value=detected;
+ }catch(err){
+   console.warn('No se pudo analizar la paleta',err);
+ }
+}
+
 function setupOptions(){
  $('#garmentCategory').innerHTML=CATEGORIES.map(x=>`<option>${x}</option>`).join('');
  $('#garmentColor').innerHTML=COLORS.map(x=>`<option>${x}</option>`).join('');
@@ -121,10 +142,10 @@ function openGarmentForm(g=null){
  $('#garmentName').value=g?.name||'';$('#garmentCategory').value=g?.category||CATEGORIES[0];$('#garmentColor').value=g?.color||COLORS[0];$('#garmentStyle').value=g?.style||STYLES[0];$('#garmentSeason').value=g?.season||SEASONS[0];$('#garmentClean').checked=g?.clean??true;
  $$('#garmentOccasions .check-chip').forEach(b=>b.classList.toggle('active',g?.occasions?.includes(b.dataset.value)??false));
  if(g?.photo){$('#photoPreview').src=g.photo;$('#photoPreview').classList.remove('hidden');$('#photoPlaceholder').classList.add('hidden');}else{$('#photoPreview').classList.add('hidden');$('#photoPlaceholder').classList.remove('hidden');}
- $('#garmentPhoto').value='';$('#garmentDialog').dataset.palette=g?.palette?JSON.stringify(g.palette):'';$('#garmentDialog').showModal();
+ if($('#garmentPhotoCamera')) $('#garmentPhotoCamera').value=''; if($('#garmentPhotoLibrary')) $('#garmentPhotoLibrary').value=''; $('#garmentDialog').dataset.palette=g?.palette?JSON.stringify(g.palette):'';$('#garmentDialog').showModal();
 }
 async function saveGarment(e){
- e.preventDefault(); const id=$('#garmentId').value||uid(); const existing=state.garments.find(x=>x.id===id); let photo=existing?.photo||''; const file=$('#garmentPhoto').files[0]; if(file)photo=await compressImage(file); if(!photo){toast('Añade una foto de la prenda');return;}
+ e.preventDefault(); const id=$('#garmentId').value||uid(); const existing=state.garments.find(x=>x.id===id); let photo=existing?.photo||''; const file=getSelectedGarmentFile(); if(file)photo=await compressImage(file); if(!photo){toast('Añade una foto de la prenda');return;}
  const palette=$('#garmentDialog').dataset.palette?JSON.parse($('#garmentDialog').dataset.palette):existing?.palette||null; const g={id,name:$('#garmentName').value.trim(),category:$('#garmentCategory').value,color:$('#garmentColor').value,style:$('#garmentStyle').value,season:$('#garmentSeason').value,occasions:$$('#garmentOccasions .check-chip.active').map(b=>b.dataset.value),clean:$('#garmentClean').checked,photo,palette,createdAt:existing?.createdAt||new Date().toISOString(),lastWorn:existing?.lastWorn||null,useCount:existing?.useCount||0};
  await put(STORE_GARMENTS,g);await reload();$('#garmentDialog').close();toast(existing?'Prenda actualizada':'Prenda añadida');
 }
@@ -166,7 +187,8 @@ async function reload(){state.garments=await getAll(STORE_GARMENTS);state.looks=
 function bindEvents(){
  document.addEventListener('click',e=>{const n=e.target.closest('[data-nav]');if(n)navigate(n.dataset.nav);const a=e.target.closest('[data-action="randomLook"]');if(a){navigate('generator');generateOutfit(true);}});
  $('#quickAddBtn').onclick=()=>openGarmentForm();$('#openAddGarment').onclick=()=>openGarmentForm();$('#closeGarmentDialog').onclick=()=>$('#garmentDialog').close();$('#garmentForm').addEventListener('submit',saveGarment);
- $('#garmentPhoto').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;const img=await compressImage(f);$('#photoPreview').src=img;$('#photoPreview').classList.remove('hidden');$('#photoPlaceholder').classList.add('hidden');try{const palette=await extractPaletteFromDataUrl(img);$('#garmentDialog').dataset.palette=JSON.stringify(palette);const detected=palette.primary.name;if(COLORS.includes(detected))$('#garmentColor').value=detected;}catch(err){console.warn('No se pudo analizar la paleta',err);}});
+ $('#garmentPhotoCamera')?.addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return; if($('#garmentPhotoLibrary')) $('#garmentPhotoLibrary').value=''; await handleGarmentPhotoSelection(f);});
+ $('#garmentPhotoLibrary')?.addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return; if($('#garmentPhotoCamera')) $('#garmentPhotoCamera').value=''; await handleGarmentPhotoSelection(f);});
  $('#wardrobeSearch').addEventListener('input',renderWardrobe);$('#wardrobeGrid').addEventListener('click',e=>{const c=e.target.closest('.garment-card');if(c)openGarmentDetail(c.dataset.id)});
  $('#garmentDetail').addEventListener('click',async e=>{const b=e.target.closest('[data-detail]');if(!b)return;const g=state.garments.find(x=>x.id===b.dataset.id);if(!g)return;if(b.dataset.detail==='edit'){$('#garmentDetailDialog').close();openGarmentForm(g);}if(b.dataset.detail==='toggleClean'){g.clean=!g.clean;await put(STORE_GARMENTS,g);await reload();$('#garmentDetailDialog').close();renderWardrobe();toast(g.clean?'Marcada como limpia':'Marcada como usada');}if(b.dataset.detail==='delete'&&confirm(`¿Eliminar “${g.name}”?`)){await del(STORE_GARMENTS,g.id);await reload();$('#garmentDetailDialog').close();renderWardrobe();toast('Prenda eliminada');}});
  $('#generateBtn').onclick=()=>generateOutfit();$('#regenerateBtn').onclick=()=>generateOutfit();$('#favoriteOutfitBtn').onclick=()=>saveLook({favorite:true});$('#wearOutfitBtn').onclick=()=>saveLook({wear:true});

@@ -38,3 +38,5 @@ PWA estática lista para GitHub Pages. Guarda prendas, fotos, favoritos e histor
 
 - Las prendas disponibles se muestran con el mosaico completo en verde.
 - Las prendas para lavar se mantienen con el mosaico completo en rojo.
+
+- Al añadir prendas, ahora puedes elegir entre hacer una foto con la cámara o subirla desde la fototeca.
