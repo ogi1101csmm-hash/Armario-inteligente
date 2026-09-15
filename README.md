@@ -1,30 +1,22 @@
-# Mi Armario Inteligente
+# Mi Armario Inteligente v2
 
-PWA estática lista para GitHub Pages. Guarda prendas, fotos, favoritos e historial en IndexedDB del dispositivo.
+Mejora principal: el generador ya no combina solo por el color que eliges manualmente, sino por la **paleta real extraída de la foto** de la prenda.
 
-## Publicar en GitHub Pages
-1. Crea un repositorio nuevo (por ejemplo `mi-armario`).
-2. Sube **todo el contenido** de esta carpeta a la raíz del repositorio.
-3. GitHub → Settings → Pages.
-4. En **Build and deployment**, selecciona `Deploy from a branch`.
-5. Branch: `main` y carpeta `/ (root)` → Save.
-6. Abre la URL que GitHub te da desde Safari en el iPhone.
-7. Safari → Compartir → **Añadir a pantalla de inicio**.
+## Qué cambia
+- Al subir una foto, la app calcula color dominante, secundario y acento.
+- El generador prioriza:
+  - bases neutras (beige, blanco, negro, gris, azul marino, crema…)
+  - un único color fuerte protagonista
+  - armonía entre tonos análogos o combinaciones sobrias
+  - calzado que no compita con el top
+- Penaliza mezclas como beige + amarillo fuerte + azul eléctrico.
 
-## Datos y privacidad
-- Las fotos NO se suben a GitHub.
-- Las prendas se guardan en IndexedDB en el navegador/dispositivo.
-- Usa Ajustes → Exportar backup antes de borrar datos de Safari o cambiar de iPhone.
-- Para abrir Ajustes: doble toque en el título superior, o mantenerlo pulsado ~0,7 s.
+## Recomendación de uso
+Cuando añadas prendas, saca la foto con luz natural y fondo sencillo para que el color detectado sea más fiable.
 
-## Funciones
-- Fotos reales de las prendas.
-- Filtros por categoría.
-- Estado limpia/usada.
-- Generador por ocasión, temperatura y estilo.
-- Prenda obligatoria ("quiero ponerme esto").
-- Compatibilidad de colores.
-- Penalización de prendas usadas recientemente.
-- Favoritos e historial.
-- Backup JSON con fotos incluidas.
-- PWA/offline mediante Service Worker.
+## Despliegue en GitHub Pages
+1. Sube todos los archivos a la raíz del repositorio.
+2. Ve a `Settings > Pages`.
+3. Elige `Deploy from a branch`.
+4. Selecciona `main` y `/(root)`.
+5. Abre la URL en Safari y añade a pantalla de inicio.

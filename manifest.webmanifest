@@ -2,13 +2,20 @@
   "name": "Mi Armario Inteligente",
   "short_name": "Mi Armario",
   "start_url": "./",
-  "scope": "./",
   "display": "standalone",
-  "background_color": "#f4f4f2",
+  "background_color": "#111318",
   "theme_color": "#111318",
-  "description": "Armario visual y generador de outfits con tus propias prendas.",
+  "description": "Armario visual con combinación por paleta real de color.",
   "icons": [
-    {"src":"icons/icon-192.png","sizes":"192x192","type":"image/png"},
-    {"src":"icons/icon-512.png","sizes":"512x512","type":"image/png"}
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }
