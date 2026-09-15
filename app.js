@@ -69,7 +69,7 @@ function refreshRequiredGarments(){const current=$('#requiredGarment').value;$('
 function renderWardrobe(){
  const q=$('#wardrobeSearch').value.trim().toLowerCase();
  const filtered=state.garments.filter(g=>(state.filter==='Todos'||g.category===state.filter)&&(!q||`${g.name} ${g.category} ${g.color}`.toLowerCase().includes(q)));
- $('#wardrobeGrid').innerHTML=filtered.length?filtered.map(g=>`<article class="garment-card ${g.clean?'':'dirty-card'}" data-id="${g.id}"><img src="${g.photo}" alt="${escapeHTML(g.name)}"><div class="garment-meta"><b>${escapeHTML(g.name)}</b><small><span class="status-dot ${g.clean?'':'dirty'}"></span>${escapeHTML(g.color)} · ${escapeHTML(g.category)}</small></div></article>`).join(''):`<div class="empty-card" style="grid-column:1/-1">${state.garments.length?'No hay prendas con este filtro.':'Añade tu primera prenda con una foto.'}</div>`;
+ $('#wardrobeGrid').innerHTML=filtered.length?filtered.map(g=>`<article class="garment-card ${g.clean?'clean-card':'dirty-card'}" data-id="${g.id}"><img src="${g.photo}" alt="${escapeHTML(g.name)}"><div class="garment-meta"><b>${escapeHTML(g.name)}</b><small><span class="status-dot ${g.clean?'':'dirty'}"></span>${escapeHTML(g.color)} · ${escapeHTML(g.category)} · ${g.clean?'Disponible':'Para lavar'}</small></div></article>`).join(''):`<div class="empty-card" style="grid-column:1/-1">${state.garments.length?'No hay prendas con este filtro.':'Añade tu primera prenda con una foto.'}</div>`;
 }
 
 

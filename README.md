@@ -35,3 +35,6 @@ PWA estática lista para GitHub Pages. Guarda prendas, fotos, favoritos e histor
 - Solo categorías masculinas y solo zapatillas como calzado.
 - Tarjeta completa roja cuando la prenda está para lavar.
 - Paleta de color extraída de la foto para mejorar outfits.
+
+- Las prendas disponibles se muestran con el mosaico completo en verde.
+- Las prendas para lavar se mantienen con el mosaico completo en rojo.
