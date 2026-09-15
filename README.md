@@ -59,13 +59,3 @@ PWA estática lista para GitHub Pages. Guarda prendas, fotos, favoritos e histor
 
 - Cada prenda puede pertenecer a uno o varios estilos.
 - El generador solo usa prendas que incluyan exactamente el estilo seleccionado (Casual, Arreglado o Deporte).
-
-- Regla estricta de tonos: no se mezclan tonos distintos de un mismo color cromático. Ejemplo: azul marino + azul medio/azul claro queda descartado.
-- La regla se basa en el color registrado y en la paleta real detectada de la foto.
-
-- Regla estricta de tonos aplicada a todas las familias de color, sin excepciones.
-- Dos prendas del mismo color base solo pueden convivir si su tono real en la foto es prácticamente idéntico.
-
-- El generador ahora prioriza combinaciones seguras para personas daltónicas.
-- Solo propone outfits con base fácil de combinar (pantalón y zapatillas en colores base) y como máximo un color protagonista.
-- La explicación del outfit indica por qué la combinación es segura y fácil de llevar sin depender de pedir opinión a otra persona.

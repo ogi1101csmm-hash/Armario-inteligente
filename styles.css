@@ -15,5 +15,3 @@
 .file-pick input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .photo-upload img + .photo-source-actions{bottom:14px}
 @media(max-width:480px){.photo-source-actions{flex-direction:column}.file-pick{width:100%}}
-
-.reason-box b{font-weight:800}

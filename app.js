@@ -159,71 +159,6 @@ function seasonMatches(g,temp){if(g.season==='Todo el año')return true;if(temp=
 function categorySlot(cat){if(['Camiseta','Polo','Camisa','Jersey','Sudadera'].includes(cat))return'top';if(['Pantalón','Vaquero','Chino','Cargo','Short'].includes(cat))return'bottom';if(cat==='Zapatillas')return'shoes';if(['Chaqueta','Cazadora','Abrigo'].includes(cat))return'outer';if(cat==='Accesorio')return'accessory';return'other';}
 function colorPairScore(a,b){const fa=COLOR_FAMILY[a]||'neutral',fb=COLOR_FAMILY[b]||'neutral';if(a===b)return 7;if(fa==='neutral'||fb==='neutral')return 10;if(FRIENDLY[fa]?.includes(fb))return 8;return 2;}
 function outfitColorScore(items){if(items.length<2)return 10;let total=0,n=0;for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++){total+=colorPairScore(items[i].color,items[j].color);n++;}return total/n;}
-const SHADE_FAMILY={
- 'Azul marino':'blue','Azul':'blue','Azul claro':'blue','Denim':'blue',
- 'Verde oliva':'green','Verde':'green',
- 'Rojo':'red','Burdeos':'red','Rosa':'red',
- 'Amarillo':'yellow','Naranja':'orange','Morado':'purple',
- 'Blanco':'white','Gris':'gray','Negro':'black',
- 'Beige':'brown','Crema':'brown','Camel':'brown','Marrón':'brown'
-};
-function realColorOf(g){return g.palette?.primary?{...g.palette.primary,name:g.color}:colorInfoFromName(g.color);}
-function sameColorDifferentTone(a,b){
- const ca=realColorOf(a), cb=realColorOf(b);
- const fa=SHADE_FAMILY[a.color], fb=SHADE_FAMILY[b.color];
- if(!fa||fa!==fb) return false;
- // Si pertenecen al mismo color base, solo se permiten si la foto demuestra
- // que son prácticamente el mismo tono. Esto se aplica a TODOS los colores.
- const hueDiff=hueDistance(ca.h,cb.h);
- const lightDiff=Math.abs(ca.l-cb.l);
- const satDiff=Math.abs(ca.s-cb.s);
- const practicallySameTone=hueDiff<=10 && lightDiff<=6 && satDiff<=10;
- return !practicallySameTone;
-}
-function hasForbiddenToneMix(items){
- for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++){
-   if(sameColorDifferentTone(items[i],items[j])) return true;
- }
- return false;
-}
-
-function familyOfGarment(g){return COLOR_FAMILY[g.color]||'neutral';}
-function isBaseSafeGarment(g){
- const family=familyOfGarment(g);
- const color=g.color;
- return family==='neutral' || color==='Azul marino' || color==='Denim' || color==='Marrón' || color==='Camel' || color==='Verde oliva';
-}
-function isAccentGarment(g){return !isBaseSafeGarment(g);}
-function colorBlindSafety(items){
- const top=items.find(g=>categorySlot(g.category)==='top');
- const bottom=items.find(g=>categorySlot(g.category)==='bottom');
- const shoes=items.find(g=>categorySlot(g.category)==='shoes');
- const outer=items.find(g=>categorySlot(g.category)==='outer');
- const bases=items.filter(isBaseSafeGarment);
- const accents=items.filter(isAccentGarment);
- if(bases.length<2) return {ok:false, reason:'faltan colores base'};
- if(bottom && !isBaseSafeGarment(bottom)) return {ok:false, reason:'pantalón demasiado arriesgado'};
- if(shoes && !isBaseSafeGarment(shoes)) return {ok:false, reason:'zapatillas demasiado arriesgadas'};
- if(accents.length>1) return {ok:false, reason:'hay más de un color protagonista'};
- if(accents.length===1){
-   const accent=accents[0];
-   if(bottom && accent.id===bottom.id) return {ok:false, reason:'el color protagonista no debe ir en el pantalón'};
-   if(shoes && accent.id===shoes.id) return {ok:false, reason:'el color protagonista no debe ir en las zapatillas'};
-   if(top && accent.id!==top.id && outer && accent.id!==outer.id) return {ok:false, reason:'el color protagonista debe ir arriba'};
- }
- return {ok:true, reason: accents.length===1 ? `base neutra con un único color protagonista (${accents[0].color.toLowerCase()})` : 'base neutra y sin colores protagonistas'};
-}
-function buildConfidenceText(items){
- const safety=colorBlindSafety(items);
- const baseNames=items.filter(isBaseSafeGarment).map(g=>g.color.toLowerCase());
- const accents=items.filter(isAccentGarment).map(g=>g.color.toLowerCase());
- const uniqueBase=[...new Set(baseNames)];
- if(!safety.ok) return 'No recomendado';
- if(accents.length){
-   return `Combinación segura para no depender de distinguir colores: base en ${uniqueBase.join(', ')} y un solo color protagonista en ${accents[0]}.`;
- }
- return `Combinación muy segura para no depender de distinguir colores: toda la base está en tonos fáciles de combinar (${uniqueBase.join(', ')}).`;
-}
 function garmentStyles(g){return Array.isArray(g.styles)&&g.styles.length?g.styles:[g.style].filter(Boolean);}
 function garmentSupportsStyle(g,style){return garmentStyles(g).includes(style);}
 function incompatiblePairCount(items){
@@ -242,13 +177,10 @@ function topAndShoesClash(items){
  return !isNeutralColor(tc) && !isNeutralColor(sc) && tc.s>45 && sc.s>45 && hueDistance(tc.h,sc.h)>70;
 }
 function isAcceptableOutfit(items,colorBase,palette){
- const safety=colorBlindSafety(items);
  if(incompatiblePairCount(items)>0) return false;
- if(hasForbiddenToneMix(items)) return false;
  if(colorBase<7) return false;
  if(palette<0) return false;
  if(topAndShoesClash(items)) return false;
- if(!safety.ok) return false;
  return true;
 }
 function garmentScore(g,{occasion,temp,style,onlyClean,avoidRecent}){let s=0;if(onlyClean&&!g.clean)return -999;if(!garmentSupportsStyle(g,style))return -999;if(!seasonMatches(g,temp))s-=15;else s+=8;if((g.occasions||[]).includes(occasion))s+=16;else if((g.occasions||[]).includes('Diario'))s+=4; if(avoidRecent&&g.lastWorn){const days=(Date.now()-new Date(g.lastWorn).getTime())/86400000;if(days<2)s-=18;else if(days<5)s-=8;}s-=Math.min(g.useCount||0,20)*.15;return s;}
@@ -294,7 +226,7 @@ function generateOutfit(regenerate=false){
  const required=state.garments.find(g=>g.id===requiredId);
  if(required&&onlyClean&&!required.clean){toast('La prenda obligatoria está marcada para lavar');return;}
  const candidates=buildOutfitCandidates(ctx,required,temp);
- if(!candidates.length){toast('No encuentro una combinación segura y fácil de combinar con la ropa disponible.');return;}
+ if(!candidates.length){toast('No encuentro una combinación que pegue bien con la ropa disponible.');return;}
 
  let choice;
  if(!regenerate || !state.currentOutfit){
@@ -328,7 +260,7 @@ function generateOutfit(regenerate=false){
  state.currentOutfit={id:uid(),garmentIds:choice.items.map(x=>x.id),occasion,temp,style,score:choice.score,createdAt:new Date().toISOString(),favorite:false,wornAt:null};
  renderCurrentOutfit();
 }
-function renderCurrentOutfit(){const o=state.currentOutfit;if(!o)return;const gs=o.garmentIds.map(id=>state.garments.find(g=>g.id===id)).filter(Boolean);$('#outfitTitle').textContent=`${o.occasion} · ${o.style}`;$('#outfitScore').textContent=`${o.score}%`;$('#outfitPhotos').innerHTML=gs.map(g=>`<article class="outfit-item"><img src="${g.photo}" alt="${escapeHTML(g.name)}"><div><b>${escapeHTML(g.name)}</b><small>${g.color} · ${g.category}</small></div></article>`).join('');const colors=[...new Set(gs.map(g=>g.color))].join(' · ');const safety=colorBlindSafety(gs);const confidence=buildConfidenceText(gs);$('#outfitReason').innerHTML=`<b>Por qué funciona</b><br><b>Apto para ti:</b> ${escapeHTML(confidence)}<br>Paleta: ${escapeHTML(colors)}. No mezcla tonos distintos del mismo color base, usa una base sencilla y evita combinaciones arriesgadas para que no dependas de pedir opinión a otra persona. Además, respeta estrictamente el estilo <b>${o.style.toLowerCase()}</b>, la ocasión <b>${o.occasion.toLowerCase()}</b> y el tiempo <b>${o.temp.toLowerCase()}</b>.`;$('#favoriteOutfitBtn').textContent=o.favorite?'♥ Favorito':'♡ Favorito';$('#outfitResult').classList.remove('hidden');$('#outfitResult').scrollIntoView({behavior:'smooth',block:'start'});}
+function renderCurrentOutfit(){const o=state.currentOutfit;if(!o)return;const gs=o.garmentIds.map(id=>state.garments.find(g=>g.id===id)).filter(Boolean);$('#outfitTitle').textContent=`${o.occasion} · ${o.style}`;$('#outfitScore').textContent=`${o.score}%`;$('#outfitPhotos').innerHTML=gs.map(g=>`<article class="outfit-item"><img src="${g.photo}" alt="${escapeHTML(g.name)}"><div><b>${escapeHTML(g.name)}</b><small>${g.color} · ${g.category}</small></div></article>`).join('');const colors=[...new Set(gs.map(g=>g.color))].join(' · ');$('#outfitReason').innerHTML=`<b>Por qué funciona</b><br>Paleta: ${escapeHTML(colors)}. La combinación está equilibrada para <b>${o.occasion.toLowerCase()}</b>, con un nivel de formalidad próximo a <b>${o.style.toLowerCase()}</b> y prendas adecuadas para tiempo <b>${o.temp.toLowerCase()}</b>.`;$('#favoriteOutfitBtn').textContent=o.favorite?'♥ Favorito':'♡ Favorito';$('#outfitResult').classList.remove('hidden');$('#outfitResult').scrollIntoView({behavior:'smooth',block:'start'});}
 async function saveLook({wear=false,favorite=false}={}){if(!state.currentOutfit)return;const o={...state.currentOutfit};if(wear)o.wornAt=new Date().toISOString();if(favorite)o.favorite=!o.favorite;await put(STORE_LOOKS,o);if(wear){for(const id of o.garmentIds){const g=state.garments.find(x=>x.id===id);if(!g)continue;g.lastWorn=o.wornAt;g.useCount=(g.useCount||0)+1;
 // Solo la ropa de deporte pasa automáticamente a "para lavar".
 // El resto de prendas, incluidas las zapatillas, se cambian manualmente.
