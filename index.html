@@ -28,8 +28,8 @@
         <div class="hero-card">
           <div>
             <p class="muted">Tu look de hoy</p>
-            <h2>Ahora combina por paleta real de la foto.</h2>
-            <p class="muted small">La app extrae el color dominante de cada prenda y evita mezclas que choquen.</p>
+            <h2>Viste mejor con lo que ya tienes.</h2>
+            <p class="muted small">Genera combinaciones con tus prendas reales y evita repetir demasiado.</p>
           </div>
           <button class="primary" data-nav="generator">Generar outfit</button>
         </div>
@@ -90,7 +90,6 @@
             <div><p class="eyebrow">RECOMENDACIÓN</p><h3 id="outfitTitle">Outfit recomendado</h3></div>
             <span id="outfitScore" class="score-pill">0%</span>
           </div>
-          <div id="outfitPalette" class="palette-row"></div>
           <div id="outfitPhotos" class="outfit-grid"></div>
           <div id="outfitReason" class="reason-box"></div>
           <div class="button-row">
@@ -118,14 +117,14 @@
             <label class="secondary file-label">Importar backup<input type="file" id="importInput" accept="application/json" /></label>
           </div>
         </div>
-        <div class="settings-card">
-          <h3>Cómo mejora las combinaciones</h3>
-          <p class="muted small">Ahora cada prenda guarda un color dominante real extraído de la foto. El generador prioriza bases neutras, limita acentos fuertes y evita choques de saturación.</p>
-        </div>
         <div class="settings-card danger-zone">
           <h3>Datos locales</h3>
           <p class="muted small">Eliminará prendas, fotos, favoritos e historial de este dispositivo.</p>
           <button class="danger" id="resetBtn">Borrar todos los datos</button>
+        </div>
+        <div class="settings-card">
+          <h3>Instalar en iPhone</h3>
+          <p class="muted small">En Safari: Compartir → Añadir a pantalla de inicio. La app funcionará como una PWA.</p>
         </div>
       </section>
     </main>
@@ -139,8 +138,8 @@
     </nav>
   </div>
 
-  <div id="garmentDialog" class="modal-overlay hidden" role="dialog" aria-modal="true"><div class="modal-panel">
-    <form id="garmentForm">
+  <dialog id="garmentDialog" class="modal">
+    <form method="dialog" id="garmentForm">
       <div class="modal-head"><h2 id="garmentModalTitle">Añadir prenda</h2><button type="button" class="icon-btn small-btn" id="closeGarmentDialog">×</button></div>
       <input type="hidden" id="garmentId" />
       <div class="photo-upload" id="photoDrop">
@@ -148,11 +147,10 @@
         <div id="photoPlaceholder"><span>📷</span><b>Añadir foto</b><small>Hazla con buena luz y fondo sencillo</small></div>
         <input type="file" id="garmentPhoto" accept="image/*" capture="environment" />
       </div>
-      <div id="detectedPalette" class="detected-palette hidden"></div>
       <label>Nombre<input id="garmentName" required placeholder="Ej. Camisa Oxford blanca" /></label>
       <div class="form-grid">
-        <label>Tipo de prenda<select id="garmentType" required></select></label>
-        <label>Color base<select id="garmentColor" required></select></label>
+        <label>Tipo<select id="garmentCategory" required></select></label>
+        <label>Color<select id="garmentColor" required></select></label>
       </div>
       <div class="form-grid">
         <label>Estilo<select id="garmentStyle" required></select></label>
@@ -160,16 +158,16 @@
       </div>
       <label>Ocasiones</label>
       <div id="garmentOccasions" class="check-chips"></div>
-      <label class="check-row"><input id="garmentClean" type="checkbox" checked /> <span>Limpia / disponible</span></label><p class="laundry-note">Si la desmarcas, la prenda aparecerá completamente en rojo como “PARA LAVAR”.</p>
-      <button type="submit" class="primary wide" id="saveGarmentBtn">Guardar prenda</button>
+      <label class="check-row"><input id="garmentClean" type="checkbox" checked /> <span>Está limpia / disponible</span></label>
+      <button type="submit" class="primary wide">Guardar prenda</button>
     </form>
-    </div></div>
+  </dialog>
 
-  <div id="garmentDetailDialog" class="modal-overlay hidden detail-modal" role="dialog" aria-modal="true"><div class="modal-panel">
+  <dialog id="garmentDetailDialog" class="modal detail-modal">
     <div id="garmentDetail"></div>
-    </div></div>
+  </dialog>
 
   <div id="toast" class="toast"></div>
-  <script src="app.js?v=6"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>

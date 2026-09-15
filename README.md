@@ -1,25 +1,37 @@
-# Mi Armario Inteligente v3
+# Mi Armario Inteligente
 
-Cambios:
-- Catálogo de prendas exclusivamente masculino.
-- Alta/edición de prendas corregida para Safari/iPhone con guardado explícito.
-- Se mantiene el análisis de paleta real desde la foto.
-- Las prendas marcadas como no limpias aparecen con TODO el mosaico rojo y la etiqueta PARA LAVAR.
-- Compatible con datos de la versión anterior mediante migración visual de categorías antiguas.
+PWA estática lista para GitHub Pages. Guarda prendas, fotos, favoritos e historial en IndexedDB del dispositivo.
 
-- Calzado limitado exclusivamente a zapatillas.
-- El generador siempre exige y utiliza zapatillas.
+## Publicar en GitHub Pages
+1. Crea un repositorio nuevo (por ejemplo `mi-armario`).
+2. Sube **todo el contenido** de esta carpeta a la raíz del repositorio.
+3. GitHub → Settings → Pages.
+4. En **Build and deployment**, selecciona `Deploy from a branch`.
+5. Branch: `main` y carpeta `/ (root)` → Save.
+6. Abre la URL que GitHub te da desde Safari en el iPhone.
+7. Safari → Compartir → **Añadir a pantalla de inicio**.
+
+## Datos y privacidad
+- Las fotos NO se suben a GitHub.
+- Las prendas se guardan en IndexedDB en el navegador/dispositivo.
+- Usa Ajustes → Exportar backup antes de borrar datos de Safari o cambiar de iPhone.
+- Para abrir Ajustes: doble toque en el título superior, o mantenerlo pulsado ~0,7 s.
+
+## Funciones
+- Fotos reales de las prendas.
+- Filtros por categoría.
+- Estado limpia/usada.
+- Generador por ocasión, temperatura y estilo.
+- Prenda obligatoria ("quiero ponerme esto").
+- Compatibilidad de colores.
+- Penalización de prendas usadas recientemente.
+- Favoritos e historial.
+- Backup JSON con fotos incluidas.
+- PWA/offline mediante Service Worker.
 
 
-## v5 - alta corregida en iPhone
-- Las fotos de cámara se redimensionan a un máximo de 1100 px y se comprimen antes de guardarse.
-- Se captura el error de cuota de Safari/localStorage.
-- El formulario de alta guarda de forma explícita y no cierra hasta confirmar que los datos se han persistido.
-- Service Worker actualizado a v5 para evitar JavaScript antiguo en caché.
-
-
-## v6
-- Botón + Prenda con evento directo.
-- Se elimina la dependencia de `<dialog>` para el alta y edición.
-- Modal propio compatible con Safari/iPhone.
-- Cierre tocando fuera del formulario o con X.
+## v7
+- Alta de prendas restaurada desde la primera versión funcional (IndexedDB + dialog nativo).
+- Solo categorías masculinas y solo zapatillas como calzado.
+- Tarjeta completa roja cuando la prenda está para lavar.
+- Paleta de color extraída de la foto para mejorar outfits.
